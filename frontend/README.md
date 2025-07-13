@@ -1,12 +1,79 @@
-# React + Vite
+# 🧠 AI Study Assistant – Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Este es el frontend del proyecto **AI Study Assistant**, una plataforma que permite generar guías de estudio personalizadas a partir de documentos PDF utilizando inteligencia artificial. Está desarrollado en **React** con **Vite**, **Tailwind CSS**, **React Router**, y otras librerías modernas como `react-query` y `axios`.
 
-Currently, two official plugins are available:
+## 🌐 Características
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Carga de archivos PDF para análisis.
+- Generación asíncrona de guías de estudio.
+- Vista detallada de guías con plan de estudio y fuentes.
+- Descarga de guía en PDF.
+- Copia rápida de enlace.
+- Diseño responsivo y moderno.
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## 🚀 Requisitos
+
+- Node.js ≥ 18
+- npm ≥ 9
+
+---
+
+## ⚙️ Instalación y Ejecución
+
+1. **Clona este repositorio** o copia el frontend a tu máquina:
+
+```bash
+git clone https://github.com/BosaBL/ai-study-planning-agent.git
+cd frontend-ai-study-assistant
+```
+
+2. Instala las dependencias:
+
+```bash
+npm install
+```
+
+3. Configura las variables si es necesario
+(Actualmente se conecta a http://131.221.33.104 desde el archivo fuente).
+
+4. Ejecuta el servidor de desarrollo:
+
+```bash
+npm run dev
+```
+
+5. Abre tu navegador y visita:
+http://localhost:5173
+
+---
+
+## 📁 Estructura Principal
+
+```bash
+.
+├── public/                   # Archivos estáticos
+├── src/
+│   ├── routes/              # Rutas de la app
+│   ├── components/          # Componentes reutilizables
+│   ├── pages/               # Páginas principales
+│   ├── styles/              # Estilos personalizados (si hay)
+│   ├── App.tsx              # Componente raíz
+│   └── main.tsx             # Entrada de React
+├── tailwind.config.js
+├── vite.config.ts
+└── package.json
+```
+
+---
+
+## 📦 Tecnologías Usadas
+
+- React 18
+- Vite
+- Tailwind CSS
+- React Router DOM
+- React Query
+- Axios
+- jsPDF + AutoTable
