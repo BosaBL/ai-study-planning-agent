@@ -62,7 +62,6 @@ flowchart TD
     H --> I
     I --> J
     J --> K
-
 ```
 
 _<p align="center">Un diagrama visual del flujo de datos, desde la entrada del usuario hasta la guía de estudio final.</p>_
