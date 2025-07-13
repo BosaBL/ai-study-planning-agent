@@ -118,9 +118,11 @@ export default function GuideStatus() {
     <div className="px-4 py-12">
       <div className="max-w-4xl mx-auto bg-white rounded-xl shadow border border-gray-200 p-8">
         {/* Encabezado */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
-          <h1 className="text-2xl font-bold text-blue-700">{guide.topic}</h1>
-          <div className="flex items-center gap-2 flex-wrap">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-blue-700 text-center sm:text-left break-words leading-snug mb-4">
+            {guide.topic}
+          </h1>
+          <div className="flex flex-wrap justify-center sm:justify-start gap-3">
             <button
               onClick={() => {
                 const link = `${window.location.origin}/guia/${guideId}`;
@@ -141,7 +143,9 @@ export default function GuideStatus() {
             </button>
 
             {copied && (
-              <span className="text-green-600 text-sm">¡Copiado!</span>
+              <span className="text-green-600 text-sm mt-2 sm:mt-0">
+                ¡Copiado!
+              </span>
             )}
           </div>
         </div>
