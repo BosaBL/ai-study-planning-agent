@@ -68,8 +68,11 @@ export default function GenerateGuide() {
           <input
             {...register("topic", { required: "Campo obligatorio" })}
             className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            placeholder="Ej: Inteligencia Artificial"
+            placeholder="Ej: Quiero aprender cómo se aplica la IA en medicina para diagnóstico"
           />
+          <p className="text-sm text-gray-500 mt-1">
+            Sé específica/o. Ejemplo: “Quiero entender cómo se usa la IA en el diagnóstico médico” o “Quiero aprender sobre visión por computadora para drones”.
+          </p>
           {errors.topic && <p className="text-red-600 mt-1">{errors.topic.message}</p>}
         </div>
 
@@ -128,6 +131,15 @@ export default function GenerateGuide() {
                 return;
               }
 
+              // ✅ Validar que el total no supere 400 MB
+              const totalSize = updatedFiles.reduce((acc, file) => acc + file.size, 0);
+              const maxTotalSize = 400 * 1024 * 1024; // 400MB en bytes
+
+              if (totalSize > maxTotalSize) {
+                setMessage("❌ El tamaño total de los archivos excede el límite de 400MB.");
+                return;
+              }
+
               setMessage("");
               setPdfs(updatedFiles);
             }}
@@ -151,7 +163,7 @@ export default function GenerateGuide() {
           )}
 
           <p className="text-sm text-gray-500 mt-1">
-            Opcional. Máximo 10 archivos en formato <strong>.pdf</strong>.
+            Opcional. Máximo 10 archivos en formato <strong>.pdf</strong> y un total de hasta <strong>400MB</strong>.
           </p>
 
           {pdfs.length >= MAX_FILES && (

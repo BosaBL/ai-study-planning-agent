@@ -51,10 +51,10 @@ export default function GuideStatus() {
     doc.text(resumen, margen, y);
     y += resumen.length * 7 + 5;
 
-    guide.study_plan.forEach((mod) => {
+    guide.study_plan.forEach((mod, index) => {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(13);
-      doc.text(`Módulo ${mod.module_number + 1}: ${mod.title}`, margen, y);
+      doc.text(`Módulo ${index + 1}: ${mod.title}`, margen, y);
       y += 8;
 
       autoTable(doc, {
@@ -152,13 +152,10 @@ export default function GuideStatus() {
         {/* Plan de Estudio */}
         <h2 className="text-xl font-semibold text-blue-700 mb-4">📘 Plan de Estudio</h2>
         <div className="space-y-6">
-          {guide.study_plan.map((mod) => (
-            <div
-              key={mod.module_number}
-              className="bg-gray-50 border border-gray-200 rounded-lg p-5 shadow-sm"
-            >
+          {guide.study_plan.map((mod, index) => (
+            <div key={index}>
               <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                Módulo {mod.module_number + 1}: {mod.title}
+                Módulo {index + 1}: {mod.title}
               </h3>
               <ul className="text-sm text-gray-700 space-y-1">
                 <li><strong><span className="print:hidden">🎯 </span>Objetivos:</strong> {mod.objectives.join(", ")}</li>
