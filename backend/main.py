@@ -56,7 +56,7 @@ PERSIST_DIRECTORY = "./chroma_db_persistente"
 CHROMA_COLLECTION_NAME = "guias_de_estudio_collection"
 
 # Configuración mejorada
-MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+MAX_FILE_SIZE = 200 * 1024 * 1024  # 10MB
 SUPPORTED_FILE_TYPES = [".pdf"]
 MAX_CONCURRENT_TASKS = 5
 EMBEDDING_RETRY_ATTEMPTS = 3
