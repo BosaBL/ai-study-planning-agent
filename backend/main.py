@@ -6,7 +6,7 @@ import tempfile
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import firebase_admin
@@ -142,7 +142,7 @@ def initialize_services():
 app = FastAPI(
     title="🤖 Agente IA para Guías de Estudio",
     description="Un agente inteligente para crear resúmenes y planes de estudio a partir de PDFs y fuentes online.",
-    version="2.6.0",  # Versión mejorada
+    version="2.8.0",  # Versión mejorada
     lifespan=lifespan,
 )
 
@@ -181,11 +181,27 @@ class StudyRequest(BaseModel):
         return v
 
 
+class StudyPlanModule(BaseModel):
+    module_number: int = Field(..., description="Número secuencial del módulo")
+    title: str = Field(..., description="Título del módulo")
+    objectives: List[str] = Field(..., description="Lista de objetivos de aprendizaje")
+    key_topics: List[str] = Field(..., description="Lista de temas clave a cubrir")
+    practical_activities: List[str] = Field(
+        ..., description="Lista de actividades prácticas sugeridas"
+    )
+    recommended_resources: List[str] = Field(
+        ..., description="Lista de recursos recomendados (links, libros, etc.)"
+    )
+    estimated_time: str = Field(
+        ..., description="Tiempo estimado para completar el módulo (e.g., '2 horas')"
+    )
+
+
 class StudyGuideResponse(BaseModel):
     guide_id: str
     topic: str
     summary: str
-    study_plan: str
+    study_plan: List[StudyPlanModule]  # Estructura de plan de estudio mejorada
     sources_used: List[str]
     created_at: Optional[str] = None
     completed_at: Optional[str] = None
@@ -260,7 +276,7 @@ def process_and_load_pdfs(files: List[UploadFile]) -> List[Document]:
                         {
                             "source": f"PDF: {file.filename}",
                             "type": "pdf_upload",
-                            "upload_time": datetime.now().isoformat(),
+                            "upload_time": datetime.now(timezone.utc).isoformat(),
                             "file_size": len(content),
                             "page_count": len(pdf_docs),
                         }
@@ -328,7 +344,7 @@ def search_online_sources(queries: List[str], max_results: int = 7) -> List[Docu
                                 "title": result.get("title", "Título Desconocido"),
                                 "type": "web_search",
                                 "query": query,
-                                "search_time": datetime.now().isoformat(),
+                                "search_time": datetime.now(timezone.utc).isoformat(),
                                 "score": result.get("score", 0.0),
                             },
                         )
@@ -385,7 +401,7 @@ def split_documents_into_chunks(documents: List[Document]) -> List[Document]:
             {
                 "chunk_id": f"chunk_{i}",
                 "chunk_length": len(chunk.page_content),
-                "processed_at": datetime.now().isoformat(),
+                "processed_at": datetime.now(timezone.utc).isoformat(),
             }
         )
 
@@ -429,7 +445,8 @@ def add_documents_to_vectorstore(documents: List[Document]) -> int:
 def get_llm():
     """Inicializa y devuelve el modelo de lenguaje de Google (Gemini) con configuración optimizada."""
     return GoogleGenerativeAI(
-        model="gemini-2.5-flash",
+        # model="gemini-2.5-flash-lite-preview-06-17",
+        model="gemini-2.5-flash-lite-preview-06-17",
         google_api_key=GOOGLE_API_KEY,
         temperature=0.7,  # Ligeramente más creativo
         max_output_tokens=8192,
@@ -455,7 +472,7 @@ def generate_study_guide(topic: str, base_retriever, llm, depth: str) -> Dict[st
         llm=llm,
     )
 
-    # Prompt mejorado y más específico
+    # Prompt mejorado para una salida JSON estructurada
     prompt_template = """
     Eres un tutor experto en IA especializado en crear guías de estudio comprehensivas. 
     
@@ -468,18 +485,37 @@ def generate_study_guide(topic: str, base_retriever, llm, depth: str) -> Dict[st
     **Tarea:**
     Crear una guía de estudio sobre "{input}" para nivel "{depth}" basándose en el contexto proporcionado.
 
-    **Formato de Respuesta Requerido:**
+    **Formato de Respuesta Requerido (JSON):**
     {{
       "summary": "Resumen detallado y comprehensivo del tema en mínimo 4 párrafos extensos, explicando conceptos clave, importancia, aplicaciones y fundamentos teóricos. Debe ser educativo y accesible para el nivel {depth}.",
-      "study_plan": "Plan de estudio estructurado en formato Markdown con 4-6 módulos. Cada módulo debe incluir:\n### Módulo X: [Título]\n**Objetivos:**\n- Objetivo 1\n- Objetivo 2\n- Objetivo 3\n\n**Temas Clave:**\n- Tema 1\n- Tema 2\n- Tema 3\n\n**Actividades Prácticas:**\n- Actividad 1\n- Actividad 2\n- Actividad 3\n\n**Recursos Recomendados:**\n- Recurso 1\n- Recurso 2\n\n**Tiempo Estimado:** X horas\n\n"
+      "study_plan": [
+        {{
+          "module_number": 1,
+          "title": "Título del Módulo 1",
+          "objectives": ["Objetivo 1.1", "Objetivo 1.2", "Objetivo 1.3"],
+          "key_topics": ["Tema clave 1.1", "Tema clave 1.2", "Tema clave 1.3"],
+          "practical_activities": ["Actividad práctica 1.1", "Actividad práctica 1.2"],
+          "recommended_resources": ["Recurso recomendado 1.1", "Recurso recomendado 1.2"],
+          "estimated_time": "X horas"
+        }},
+        {{
+          "module_number": 2,
+          "title": "Título del Módulo 2",
+          "objectives": ["Objetivo 2.1", "Objetivo 2.2"],
+          "key_topics": ["Tema clave 2.1", "Tema clave 2.2"],
+          "practical_activities": ["Actividad práctica 2.1"],
+          "recommended_resources": ["Recurso recomendado 2.1"],
+          "estimated_time": "Y horas"
+        }}
+      ]
     }}
 
     **Instrucciones Específicas:**
-    1. El resumen debe ser substantivo y educativo, no superficial
-    2. El plan de estudio debe ser práctico y accionable
-    3. Adapta el contenido al nivel de profundidad especificado
-    4. Incluye estimaciones de tiempo realistas
-    5. Sugiere recursos y actividades específicas
+    1. El resumen debe ser substantivo y educativo.
+    2. El 'study_plan' debe ser un array de objetos JSON, con 4-6 módulos. Cada objeto debe tener las claves: 'module_number', 'title', 'objectives', 'key_topics', 'practical_activities', 'recommended_resources', y 'estimated_time'.
+    3. Adapta el contenido al nivel de profundidad especificado.
+    4. Incluye estimaciones de tiempo realistas.
+    5. Sugiere recursos y actividades específicas.
     
     Responde SOLO con el objeto JSON:
     """
@@ -510,50 +546,38 @@ def generate_study_guide(topic: str, base_retriever, llm, depth: str) -> Dict[st
     try:
         answer_text = response.get("answer", "{}")
 
-        # Manejar diferentes tipos de respuesta
         if isinstance(answer_text, dict):
             guide_json = answer_text
         else:
-            # Limpiar la respuesta de posibles marcadores
-            cleaned_text = answer_text.strip()
+            cleaned_text = (
+                answer_text.strip().removeprefix("```json").removesuffix("```").strip()
+            )
+            guide_json = json.loads(cleaned_text)
 
-            # Remover marcadores de código si existen
-            if "```json" in cleaned_text:
-                start = cleaned_text.find("```json") + 7
-                end = cleaned_text.rfind("```")
-                if end > start:
-                    cleaned_text = cleaned_text[start:end].strip()
-            elif "```" in cleaned_text:
-                start = cleaned_text.find("```") + 3
-                end = cleaned_text.rfind("```")
-                if end > start:
-                    cleaned_text = cleaned_text[start:end].strip()
-
-            # Buscar el objeto JSON en el texto
-            json_start = cleaned_text.find("{")
-            json_end = cleaned_text.rfind("}") + 1
-
-            if json_start != -1 and json_end > json_start:
-                json_str = cleaned_text[json_start:json_end]
-                guide_json = json.loads(json_str)
-            else:
-                raise ValueError("No se encontró un objeto JSON válido en la respuesta")
-
-        # Validar que los campos requeridos estén presentes
         required_fields = ["summary", "study_plan"]
         for field in required_fields:
             if field not in guide_json or not guide_json[field]:
-                raise ValueError(f"Campo requerido '{field}' no encontrado o vacío")
+                raise ValueError(
+                    f"Campo requerido '{field}' no encontrado o vacío en la respuesta del LLM."
+                )
+
+        if not isinstance(guide_json["study_plan"], list):
+            raise ValueError("El campo 'study_plan' debe ser una lista (array).")
+
+        # Validar cada módulo usando el modelo Pydantic para robustez adicional
+        validated_plan = [
+            StudyPlanModule(**module) for module in guide_json["study_plan"]
+        ]
 
         return {
             "summary": guide_json["summary"],
-            "study_plan": guide_json["study_plan"],
+            "study_plan": validated_plan,
             "sources_used": sorted(list(sources_used)),
             "metadata": {
                 "topic": topic,
                 "depth": depth,
                 "sources_count": len(sources_used),
-                "generated_at": datetime.now().isoformat(),
+                "generated_at": datetime.now(timezone.utc).isoformat(),
             },
         }
 
@@ -566,23 +590,13 @@ def generate_study_guide(topic: str, base_retriever, llm, depth: str) -> Dict[st
             "summary": f"Error al procesar la respuesta del modelo para el tema '{topic}'. "
             f"El modelo no generó una respuesta en el formato JSON esperado. "
             f"Error específico: {str(e)}",
-            "study_plan": f"## Plan de Estudio de Emergencia para: {topic}\n\n"
-            f"**Nota:** Hubo un error en la generación automática. "
-            f"Se recomienda intentar nuevamente o consultar las fuentes directamente.\n\n"
-            f"### Módulo 1: Investigación Inicial\n"
-            f"**Objetivos:**\n"
-            f"- Investigar conceptos básicos de {topic}\n"
-            f"- Identificar fuentes confiables\n"
-            f"- Crear un plan de estudio personalizado\n\n"
-            f"**Tiempo Estimado:** 2-3 horas\n\n"
-            f"**Respuesta original del modelo:**\n"
-            f"```\n{response.get('answer', 'No disponible')[:1000]}...\n```",
+            "study_plan": [],  # Devuelve una lista vacía para cumplir con el nuevo esquema
             "sources_used": sorted(list(sources_used)),
             "metadata": {
                 "topic": topic,
                 "depth": depth,
                 "sources_count": len(sources_used),
-                "generated_at": datetime.now().isoformat(),
+                "generated_at": datetime.now(timezone.utc).isoformat(),
                 "error": str(e),
             },
         }
@@ -596,7 +610,7 @@ async def root():
     return {
         "message": "Bienvenido al Agente IA para Guías de Estudio",
         "status": "operativo",
-        "version": "2.6.0",
+        "version": "2.8.0",
         "endpoints": {
             "upload": "/upload-pdfs/",
             "generate_async": "/generate-study-guide-async/",
@@ -611,17 +625,13 @@ async def get_status():
     """Endpoint mejorado de estado del sistema."""
     try:
         doc_count = vectorstore._collection.count() if vectorstore else 0
-
-        # Verificar conectividad de servicios
         services_status = {
             "vectorstore": {
                 "status": "inicializado" if vectorstore else "no inicializado",
                 "documents_count": doc_count,
-                "persist_directory": PERSIST_DIRECTORY,
             },
             "embeddings": {
-                "status": "inicializado" if embeddings_model else "no inicializado",
-                "model": "models/embedding-001" if embeddings_model else None,
+                "status": "inicializado" if embeddings_model else "no inicializado"
             },
             "tavily_search": {
                 "status": "inicializado" if tavily_client else "no inicializado"
@@ -633,19 +643,14 @@ async def get_status():
 
         return {
             "status": "operativo",
-            "timestamp": datetime.now().isoformat(),
-            "version": "2.6.0",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "version": "2.8.0",
             "services": services_status,
-            "configuration": {
-                "max_file_size_mb": MAX_FILE_SIZE // (1024 * 1024),
-                "supported_file_types": SUPPORTED_FILE_TYPES,
-                "max_concurrent_tasks": MAX_CONCURRENT_TASKS,
-            },
         }
     except Exception as e:
         return {
             "status": "error",
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "error": str(e),
         }
 
@@ -653,94 +658,63 @@ async def get_status():
 @app.post("/upload-pdfs/", response_model=UploadResponse)
 async def upload_pdfs_endpoint(files: List[UploadFile] = File(...)):
     """Endpoint mejorado para subir PDFs con mejor validación y manejo de errores."""
-    start_time = datetime.now()
+    start_time = datetime.now(timezone.utc)
 
     if not files:
         raise HTTPException(status_code=400, detail="No se enviaron archivos.")
 
-    # Validar archivos antes de procesarlos
-    valid_files = []
-    errors = []
-
-    for file in files:
-        if not validate_file_type(file.filename):
-            errors.append(f"Tipo no soportado: {file.filename}")
-            continue
-
-        if not validate_file_size(file):
-            errors.append(f"Archivo muy grande: {file.filename}")
-            continue
-
-        valid_files.append(file)
-
+    valid_files = [
+        f for f in files if validate_file_type(f.filename) and validate_file_size(f)
+    ]
     if not valid_files:
         raise HTTPException(
-            status_code=400,
-            detail=f"No hay archivos válidos para procesar. Errores: {errors}",
+            status_code=400, detail="Ninguno de los archivos es válido."
         )
 
     try:
-        # Procesar archivos en el pool de threads
         documents = await asyncio.to_thread(process_and_load_pdfs, valid_files)
-
         if not documents:
             raise HTTPException(
-                status_code=400,
-                detail="No se pudo extraer contenido de los PDFs válidos.",
+                status_code=400, detail="No se pudo extraer contenido de los PDFs."
             )
 
-        # Añadir documentos a la base de vectores
         docs_added = await asyncio.to_thread(add_documents_to_vectorstore, documents)
-
-        # Registrar en Firebase
         upload_id = f"upload_{uuid.uuid4().hex[:8]}"
-        processing_time = (datetime.now() - start_time).total_seconds()
+        processing_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
-        upload_log = {
-            "timestamp": datetime.now(),
-            "files_processed": [f.filename for f in valid_files],
-            "documents_extracted": len(documents),
-            "chunks_added_to_db": docs_added,
-            "processing_time_seconds": processing_time,
-            "errors": errors if errors else None,
-        }
+        db.collection("uploads_log").document(upload_id).set(
+            {
+                "timestamp": datetime.now(timezone.utc),
+                "files_processed": [f.filename for f in valid_files],
+                "chunks_added_to_db": docs_added,
+                "processing_time_seconds": processing_time,
+            }
+        )
 
-        db.collection("uploads_log").document(upload_id).set(upload_log)
-
-        response = UploadResponse(
+        return UploadResponse(
             status="éxito",
             message=f"{len(valid_files)} PDF(s) procesados correctamente.",
             upload_id=upload_id,
             chunks_added=docs_added,
             processing_time=processing_time,
         )
-
-        if errors:
-            response.message += f" Advertencias: {len(errors)} archivos omitidos."
-
-        return response
-
     except Exception as e:
-        print(f"❌ [API] Error en upload_pdfs_endpoint: {e}")
         raise HTTPException(
-            status_code=500, detail=f"Error interno al procesar PDFs: {str(e)}"
+            status_code=500, detail=f"Error interno al procesar PDFs: {e}"
         )
 
 
 async def generate_guide_background_task(guide_id: str, request: StudyRequest):
     """Tarea en segundo plano mejorada para generar la guía."""
     print(f"⏳ [BackgroundTask] Iniciando tarea para la guía: {guide_id}")
-
-    start_time = datetime.now()
+    start_time = datetime.now(timezone.utc)
 
     try:
-        # Verificar servicios
         if not vectorstore or not tavily_client:
             raise RuntimeError(
-                "Los servicios (VectorStore/Tavily) no se inicializaron correctamente."
+                "Los servicios (VectorStore/Tavily) no se inicializaron."
             )
 
-        # Actualizar estado a procesando con más detalles
         db.collection("study_guides").document(guide_id).update(
             {
                 "status": "procesando",
@@ -749,96 +723,61 @@ async def generate_guide_background_task(guide_id: str, request: StudyRequest):
             }
         )
 
-        # Manejo inteligente de búsquedas web
-        if request.search_queries:
-            print("   -> 🌐 [BackgroundTask] Realizando búsquedas personalizadas...")
-            search_docs = await asyncio.to_thread(
-                search_online_sources, request.search_queries
-            )
-            if search_docs:
-                await asyncio.to_thread(add_documents_to_vectorstore, search_docs)
-        elif vectorstore._collection.count() == 0:
-            print(
-                "   -> ⚠️  [BackgroundTask] DB vacía. Generando búsquedas automáticas..."
-            )
-            # Búsquedas más inteligentes basadas en el tema y profundidad
-            depth_mapping = {
-                "básico": ["introducción", "conceptos básicos", "fundamentos"],
-                "intermedio": ["guía completa", "conceptos clave", "aplicaciones"],
-                "avanzado": [
-                    "análisis avanzado",
-                    "técnicas especializadas",
-                    "investigación",
-                ],
+        search_queries = request.search_queries
+        if not search_queries and vectorstore._collection.count() == 0:
+            depth_terms = {
+                "básico": "introducción",
+                "intermedio": "guía completa",
+                "avanzado": "análisis avanzado",
             }
+            search_queries = [
+                f"{depth_terms.get(request.depth, 'guía')} de {request.topic}"
+            ]
 
-            depth_terms = depth_mapping.get(request.depth, depth_mapping["intermedio"])
-            default_queries = [f"{term} de {request.topic}" for term in depth_terms]
-
-            search_docs = await asyncio.to_thread(
-                search_online_sources, default_queries
-            )
+        if search_queries:
+            search_docs = await asyncio.to_thread(search_online_sources, search_queries)
             if search_docs:
                 await asyncio.to_thread(add_documents_to_vectorstore, search_docs)
 
-        # Actualizar progreso
         db.collection("study_guides").document(guide_id).update(
             {"current_step": "generación_contenido"}
         )
 
-        # Generar la guía
-        print("   -> 🧠 [BackgroundTask] Generando contenido de la guía...")
         llm = get_llm()
-
-        # Configuración optimizada del retriever
         base_retriever = vectorstore.as_retriever(
-            search_type="mmr",  # Máxima diversidad marginal
-            search_kwargs={
-                "k": 25,  # Más documentos para mejor contexto
-                "fetch_k": 50,  # Más candidatos para MMR
-                "lambda_mult": 0.7,  # Balance entre relevancia y diversidad
-            },
+            search_type="mmr",
+            search_kwargs={"k": 25, "fetch_k": 50, "lambda_mult": 0.7},
         )
-
         guide_data = await asyncio.to_thread(
             generate_study_guide, request.topic, base_retriever, llm, request.depth
         )
 
-        # Calcular tiempo de procesamiento
-        processing_time = (datetime.now() - start_time).total_seconds()
-
-        # Actualizar documento con el resultado completo
         db.collection("study_guides").document(guide_id).update(
             {
                 "status": "completado",
                 "summary": guide_data["summary"],
-                "study_plan": guide_data["study_plan"],
+                "study_plan": [
+                    module.dict() for module in guide_data.get("study_plan", [])
+                ],
                 "sources_used": guide_data["sources_used"],
-                "completed_at": datetime.now(),
-                "processing_time_seconds": processing_time,
+                "completed_at": datetime.now(timezone.utc),
+                "processing_time_seconds": (
+                    datetime.now(timezone.utc) - start_time
+                ).total_seconds(),
                 "metadata": guide_data.get("metadata", {}),
                 "current_step": "completado",
             }
         )
-
-        print(
-            f"✅ [BackgroundTask] Tarea completada para la guía: {guide_id} ({processing_time:.2f}s)"
-        )
+        print(f"✅ [BackgroundTask] Tarea completada para la guía: {guide_id}")
 
     except Exception as e:
-        processing_time = (datetime.now() - start_time).total_seconds()
         error_msg = str(e)
-
         print(f"❌ [BackgroundTask] Error en tarea para guía {guide_id}: {error_msg}")
-
-        # Actualizar con información de error detallada
         db.collection("study_guides").document(guide_id).update(
             {
                 "status": "error",
                 "error_message": error_msg,
-                "error_type": type(e).__name__,
-                "completed_at": datetime.now(),
-                "processing_time_seconds": processing_time,
+                "completed_at": datetime.now(timezone.utc),
                 "current_step": "error",
             }
         )
@@ -849,38 +788,24 @@ async def generate_study_guide_async_endpoint(
     request: StudyRequest, background_tasks: BackgroundTasks
 ):
     """Endpoint mejorado para generar guías de estudio de forma asíncrona."""
-    print(f"⚡️ [API-Async] Solicitud para generar guía sobre: '{request.topic}'")
+    guide_id = f"guide_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
 
-    # Generar ID más legible
-    guide_id = (
-        f"guide_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
-    )
-
-    # Crear documento inicial con más información
     initial_doc = {
         "status": "iniciado",
         "topic": request.topic,
         "depth": request.depth,
-        "search_queries": request.search_queries,
-        "created_at": datetime.now(),
+        "created_at": datetime.now(timezone.utc),
         "guide_id": guide_id,
-        "version": "2.6.0",
-        "estimated_completion_minutes": 2,  # Estimación basada en experiencia
         "current_step": "inicializando",
     }
-
     db.collection("study_guides").document(guide_id).set(initial_doc)
 
-    # Añadir tarea en segundo plano
     background_tasks.add_task(generate_guide_background_task, guide_id, request)
 
     return {
         "message": "Solicitud recibida. La guía se está generando en segundo plano.",
         "guide_id": guide_id,
         "status_url": f"/study-guide/{guide_id}",
-        "estimated_completion": "1-3 minutos",
-        "topic": request.topic,
-        "depth": request.depth,
     }
 
 
@@ -896,9 +821,7 @@ async def generate_study_guide_async_endpoint(
 async def get_study_guide_status(guide_id: str):
     """Endpoint mejorado para consultar el estado y resultado de una guía."""
     try:
-        doc_ref = db.collection("study_guides").document(guide_id)
-        doc = doc_ref.get()
-
+        doc = db.collection("study_guides").document(guide_id).get()
         if not doc.exists:
             raise HTTPException(
                 status_code=404, detail=f"Guía con ID '{guide_id}' no encontrada."
@@ -906,57 +829,48 @@ async def get_study_guide_status(guide_id: str):
 
         data = doc.to_dict()
         status = data.get("status")
-        current_step = data.get("current_step", "desconocido")
 
-        # Estado: procesando o iniciado
         if status in ["procesando", "iniciado"]:
             processing_time = None
-            if "processing_started_at" in data:
-                start_time = data["processing_started_at"]
-                if isinstance(start_time, datetime):
-                    processing_time = (datetime.now() - start_time).total_seconds()
+            if "processing_started_at" in data and isinstance(
+                data["processing_started_at"], datetime
+            ):
+                processing_time = (
+                    datetime.now(timezone.utc) - data["processing_started_at"]
+                ).total_seconds()
 
             return JSONResponse(
                 status_code=202,
                 content={
                     "status": status,
-                    "current_step": current_step,
-                    "message": f"La guía se está procesando. Paso actual: {current_step}",
-                    "guide_id": guide_id,
-                    "topic": data.get("topic"),
+                    "current_step": data.get("current_step", "desconocido"),
+                    "message": "La guía se está procesando.",
                     "processing_time_seconds": processing_time,
-                    "estimated_remaining_minutes": max(
-                        0, 2 - (processing_time / 60 if processing_time else 0)
-                    ),
                 },
             )
 
-        # Estado: error
         elif status == "error":
-            error_details = {
-                "guide_id": guide_id,
-                "status": "error",
-                "error_message": data.get("error_message", "Error desconocido"),
-                "error_type": data.get("error_type", "Unknown"),
-                "processing_time_seconds": data.get("processing_time_seconds"),
-                "topic": data.get("topic"),
-                "created_at": data.get("created_at").isoformat()
-                if data.get("created_at")
-                else None,
-            }
-
             raise HTTPException(
                 status_code=500,
-                detail=f"Error al generar la guía: {error_details['error_message']}",
+                detail=f"Error al generar la guía: {data.get('error_message', 'Error desconocido')}",
             )
 
-        # Estado: completado
         elif status == "completado":
+            # Añadir robustez para manejar datos antiguos o malformados en Firestore
+            raw_plan = data.get("study_plan", [])
+            if not isinstance(raw_plan, list):
+                print(
+                    f"⚠️  [API] Corrigiendo 'study_plan' inválido para la guía {guide_id}. Se usará una lista vacía."
+                )
+                final_plan = []
+            else:
+                final_plan = raw_plan
+
             return StudyGuideResponse(
                 guide_id=guide_id,
                 topic=data.get("topic", ""),
                 summary=data.get("summary", ""),
-                study_plan=data.get("study_plan", ""),
+                study_plan=final_plan,
                 sources_used=data.get("sources_used", []),
                 created_at=data.get("created_at").isoformat()
                 if data.get("created_at")
@@ -966,168 +880,46 @@ async def get_study_guide_status(guide_id: str):
                 else None,
             )
 
-        # Estado desconocido
         else:
             raise HTTPException(status_code=500, detail=f"Estado desconocido: {status}")
 
     except HTTPException:
-        raise  # Re-lanzar HTTPExceptions
+        raise
     except Exception as e:
         print(f"❌ [API] Error en get_study_guide_status: {e}")
         raise HTTPException(
-            status_code=500, detail=f"Error interno al consultar la guía: {str(e)}"
+            status_code=500, detail=f"Error interno al consultar la guía: {e}"
         )
 
 
 @app.get("/guides/")
 async def list_recent_guides(limit: int = 10):
     """Nuevo endpoint para listar guías recientes."""
-    try:
-        guides_ref = (
-            db.collection("study_guides")
-            .order_by("created_at", direction=firestore.Query.DESCENDING)
-            .limit(limit)
-        )
-
-        guides = []
-        for doc in guides_ref.stream():
-            data = doc.to_dict()
-            guides.append(
-                {
-                    "guide_id": doc.id,
-                    "topic": data.get("topic"),
-                    "status": data.get("status"),
-                    "depth": data.get("depth"),
-                    "created_at": data.get("created_at").isoformat()
-                    if data.get("created_at")
-                    else None,
-                    "completed_at": data.get("completed_at").isoformat()
-                    if data.get("completed_at")
-                    else None,
-                    "processing_time_seconds": data.get("processing_time_seconds"),
-                }
-            )
-
-        return {"guides": guides, "total_returned": len(guides)}
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error al consultar guías: {str(e)}"
-        )
+    guides_ref = (
+        db.collection("study_guides")
+        .order_by("created_at", direction=firestore.Query.DESCENDING)
+        .limit(limit)
+    )
+    guides = [doc.to_dict() for doc in guides_ref.stream()]
+    for guide in guides:
+        if "created_at" in guide and isinstance(guide["created_at"], datetime):
+            guide["created_at"] = guide["created_at"].isoformat()
+        if "completed_at" in guide and isinstance(guide["completed_at"], datetime):
+            guide["completed_at"] = guide["completed_at"].isoformat()
+    return {"guides": guides}
 
 
 @app.delete("/admin/reset-knowledge-base/")
 async def reset_knowledge_base():
     """Endpoint mejorado para reiniciar la base de conocimientos."""
     print("🚨 [Admin] Reiniciando la base de conocimientos...")
-
     try:
-        # Backup de estadísticas antes de borrar
-        doc_count = vectorstore._collection.count() if vectorstore else 0
-
-        # Borrar directorio de persistencia
         if os.path.exists(PERSIST_DIRECTORY):
             await asyncio.to_thread(shutil.rmtree, PERSIST_DIRECTORY)
-            print(
-                f"   -> 🗑️  Eliminados {doc_count} documentos del directorio persistente"
-            )
-
-        # Reinicializar servicios
         await asyncio.to_thread(initialize_services)
-
-        # Registrar la acción en Firebase
-        reset_log = {
-            "timestamp": datetime.now(),
-            "action": "knowledge_base_reset",
-            "documents_removed": doc_count,
-            "admin_action": True,
-        }
-
-        db.collection("admin_actions").add(reset_log)
-
-        return {
-            "status": "éxito",
-            "message": f"Base de conocimientos reiniciada. {doc_count} documentos eliminados.",
-            "timestamp": datetime.now().isoformat(),
-            "new_document_count": vectorstore._collection.count() if vectorstore else 0,
-        }
-
+        return {"status": "éxito", "message": "Base de conocimientos reiniciada."}
     except Exception as e:
-        print(f"❌ [Admin] Error al reiniciar: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error al reiniciar la base de conocimientos: {str(e)}",
-        )
-
-
-@app.get("/admin/stats/")
-async def get_admin_statistics():
-    """Nuevo endpoint para obtener estadísticas administrativas."""
-    try:
-        # Estadísticas de la base de vectores
-        vector_stats = {
-            "total_documents": vectorstore._collection.count() if vectorstore else 0,
-            "persist_directory": PERSIST_DIRECTORY,
-            "collection_name": CHROMA_COLLECTION_NAME,
-        }
-
-        # Estadísticas de Firebase (últimas 24 horas)
-        yesterday = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-
-        # Contar guías por estado
-        guides_ref = db.collection("study_guides").where("created_at", ">=", yesterday)
-        guides_by_status = {"completado": 0, "error": 0, "procesando": 0, "iniciado": 0}
-        total_processing_time = 0
-        completed_count = 0
-
-        for doc in guides_ref.stream():
-            data = doc.to_dict()
-            status = data.get("status", "unknown")
-            if status in guides_by_status:
-                guides_by_status[status] += 1
-
-            if status == "completado" and "processing_time_seconds" in data:
-                total_processing_time += data["processing_time_seconds"]
-                completed_count += 1
-
-        # Contar uploads
-        uploads_ref = db.collection("uploads_log").where("timestamp", ">=", yesterday)
-        upload_count = sum(1 for _ in uploads_ref.stream())
-
-        avg_processing_time = (
-            total_processing_time / completed_count if completed_count > 0 else 0
-        )
-
-        return {
-            "timestamp": datetime.now().isoformat(),
-            "vector_database": vector_stats,
-            "last_24_hours": {
-                "guides_by_status": guides_by_status,
-                "total_guides": sum(guides_by_status.values()),
-                "upload_sessions": upload_count,
-                "average_processing_time_seconds": round(avg_processing_time, 2),
-                "success_rate": (
-                    round(
-                        guides_by_status["completado"]
-                        / sum(guides_by_status.values())
-                        * 100,
-                        2,
-                    )
-                    if sum(guides_by_status.values()) > 0
-                    else 0
-                ),
-            },
-            "system_info": {
-                "max_file_size_mb": MAX_FILE_SIZE // (1024 * 1024),
-                "supported_file_types": SUPPORTED_FILE_TYPES,
-                "max_concurrent_tasks": MAX_CONCURRENT_TASKS,
-            },
-        }
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error al obtener estadísticas: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Error al reiniciar: {e}")
 
 
 # --- Manejo de Errores Global ---
@@ -1135,14 +927,12 @@ async def get_admin_statistics():
 async def global_exception_handler(request, exc):
     """Manejo global de excepciones mejorado."""
     print(f"❌ [Global] Excepción no manejada: {type(exc).__name__}: {str(exc)}")
-
     return JSONResponse(
         status_code=500,
         content={
             "error": "Error interno del servidor",
             "type": type(exc).__name__,
-            "timestamp": datetime.now().isoformat(),
-            "path": str(request.url.path) if hasattr(request, "url") else "unknown",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         },
     )
 
@@ -1151,12 +941,4 @@ if __name__ == "__main__":
     import uvicorn
 
     print("🚀 Iniciando servidor mejorado con Uvicorn...")
-    uvicorn.run(
-        app,
-        host="0.0.0.0",
-        port=8000,
-        reload=False,  # Deshabilitado para producción
-        access_log=True,
-        log_level="info",
-    )
-
+    uvicorn.run(app, host="0.0.0.0", port=8000)
