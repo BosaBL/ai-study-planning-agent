@@ -25,35 +25,33 @@ El agente no solo genera contenido, sino que **construye y enriquece su propia b
 El núcleo del agente es un sofisticado pipeline de **Generación Aumentada por Recuperación (RAG)**. Este proceso garantiza que el contenido no sea simplemente "imaginado" por el LLM, sino que esté firmemente anclado en la información proporcionada y verificable.
 
 ```mermaid
-graph TD
-    subgraph Entrada del Usuario
-        A[Solicitud del Usuario: Tema, Profundidad, Búsquedas]
-    end
-
-    subgraph Adquisición de Conocimiento
-        B[Búsqueda Web con Tavily]
-        C[Procesamiento de PDFs]
-    end
-
-    subgraph Indexación y Aprendizaje
-        D[Fragmentación de Documentos]
-        E[Vectorización con Google Gemini]
-        F[Almacenamiento en ChromaDB]
-    end
-
-    subgraph Generación de Guía
-        G[Recuperación de Fragmentos Relevantes]
-        H[Construcción del Contexto]
-        I[Invocación del LLM Gemini con Prompt Estructurado]
-    end
-
-    subgraph Salida
-        J[Guía de Estudio en JSON]
-        K[Almacenamiento en Firestore]
-    end
-
-    A --> B
-    A --> C
+---
+config:
+  layout: fixed
+---
+flowchart TD
+ subgraph subGraph0["Entrada del Usuario"]
+        A["Solicitud del Usuario: Tema, Profundidad, Búsquedas"]
+  end
+ subgraph subGraph1["Adquisicion de Conocimientos"]
+        B["Búsqueda Web con Tavily"]
+        C["Procesamiento de PDFs"]
+  end
+ subgraph subGraph2["Indexación y Aprendizaje"]
+        D["Fragmentación de Documentos"]
+        E["Vectorización con Google Gemini"]
+        F["Almacenamiento en ChromaDB"]
+  end
+ subgraph subGraph3["Generación de Guía"]
+        G["Recuperación de Fragmentos Relevantes"]
+        H["Construcción del Contexto"]
+        I["Invocación del LLM Gemini con Prompt Estructurado"]
+  end
+ subgraph Salida["Salida"]
+        J["Guía de Estudio en JSON"]
+        K["Almacenamiento en Firestore"]
+  end
+    A --> B & C
     B --> D
     C --> D
     D --> E
@@ -64,6 +62,7 @@ graph TD
     H --> I
     I --> J
     J --> K
+
 ```
 
 _<p align="center">Un diagrama visual del flujo de datos, desde la entrada del usuario hasta la guía de estudio final.</p>_
