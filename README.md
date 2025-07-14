@@ -27,7 +27,7 @@ El corazón de este proyecto es un **agente autónomo de IA** construido en Pyth
 
 No se limita a responder preguntas; construye activamente una base de conocimientos vectorial (usando ChromaDB) a partir de los documentos que le proporcionas y las búsquedas que realiza.
 
-> :point_right: **Para una explicación técnica detallada sobre la arquitectura del agente, su flujo de datos y cómo se vuelve más inteligente con el tiempo, consulta el [README del Backend](https://github.com/BosaBL/study-agent/blob/main/backend/README.md).**
+> :point_right: **Para una explicación técnica detallada sobre la arquitectura del agente, su flujo de datos y cómo se vuelve más inteligente con el tiempo, consulta el [README del Backend](https://github.com/BosaBL/ai-study-planning-agent/blob/main/backend/README.md).**
 
 ## ✨ Características Principales
 
