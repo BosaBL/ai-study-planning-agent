@@ -1,14 +1,14 @@
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/BosaBL/study-agent/main/frontend/src/assets/logo.png" alt="Logo del Proyecto" width="150"/>
+  <img src="https://github.com/BosaBL/ai-study-planning-agent/blob/main/frontend/public/logo.png" alt="Logo del Proyecto" width="150"/>
   <h1>Study Agent: Tu Tutor Personalizado con IA</h1>
   <p>
     <strong>Transforma cualquier documento o tema en una guía de estudio completa y estructurada.</strong>
   </p>
   <p>
-    <a href="#-tecnologías-utilizadas">Tecnologías</a> •
-    <a href="#-cómo-funciona">Cómo Funciona</a> •
-    <a href="#-instalación">Instalación</a> •
+    <a href="#%EF%B8%8F-tecnologías-utilizadas">Tecnologías</a> •
+    <a href="#brain-cómo-funciona-el-agente-inteligente">Cómo Funciona</a> •
+    <a href="#-instalación-y-ejecución">Instalación</a> •
     <a href="#-estructura-del-proyecto">Estructura</a>
   </p>
 </div>
@@ -20,10 +20,6 @@
 **Study Agent** es una aplicación web inteligente que actúa como un tutor personal. Simplemente proporciona un tema, sube tus documentos PDF (apuntes de clase, libros, artículos) y el agente de IA investigará, analizará y creará una guía de estudio a medida para ti.
 
 El sistema no solo extrae información, sino que la enriquece con búsquedas web para ofrecer una perspectiva más completa y actualizada, construyendo una base de conocimientos que se vuelve más experta con cada uso.
-
-<div align="center">
-  <img src="https://raw.githubusercontent.com/BosaBL/study-agent/main/docs/screenshot.png" alt="Captura de pantalla de la aplicación" width="700"/>
-</div>
 
 ## :brain: ¿Cómo Funciona? El Agente Inteligente
 
