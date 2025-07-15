@@ -3,7 +3,7 @@
 [![Python](https://img.shields.io/badge/Python-3.12+-blue?style=for-the-badge&logo=python)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.111.0-green?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![LangChain](https://img.shields.io/badge/LangChain-0.2.11-purple?style=for-the-badge&logo=langchain)](https://www.langchain.com/)
-[![Google Gemini](https://img.shields.io/badge/Google_Gemini-1.5_Flash-orange?style=for-the-badge&logo=google-gemini)](https://deepmind.google/technologies/gemini/)
+[![Google Gemini](https://img.shields.io/badge/Google_Gemini-2.5_Flash-orange?style=for-the-badge&logo=google-gemini)](https://deepmind.google/technologies/gemini/)
 [![ChromaDB](https://img.shields.io/badge/ChromaDB-0.5.3-blueviolet?style=for-the-badge&logo=chromadb)](https://www.trychroma.com/)
 [![Firebase](https://img.shields.io/badge/Firebase-6.2.0-yellow?style=for-the-badge&logo=firebase)](https://firebase.google.com/)
 
@@ -87,40 +87,40 @@ La "inteligencia" del agente reside en la **mejora continua de su base de conoci
 
 1. **Clonar el repositorio:**
 
-    ```bash
-    git clone https://github.com/tu_usuario/study-agent.git
-    cd study-agent/backend
-    ```
+   ```bash
+   git clone https://github.com/tu_usuario/study-agent.git
+   cd study-agent/backend
+   ```
 
 2. **Instalar dependencias con `uv`:**
-    Este proyecto utiliza [uv](https://github.com/astral-sh/uv) para la gestión de dependencias.
+   Este proyecto utiliza [uv](https://github.com/astral-sh/uv) para la gestión de dependencias.
 
-    ```bash
-    uv sync
-    ```
+   ```bash
+   uv sync
+   ```
 
 3. **Configurar variables de entorno:**
-    Crea un archivo `.env` en la raíz del proyecto (`backend/.env`) y añade las siguientes claves:
+   Crea un archivo `.env` en la raíz del proyecto (`backend/.env`) y añade las siguientes claves:
 
-    ```env
-    # Clave de API para los modelos de Google (Gemini)
-    GOOGLE_API_KEY="tu_api_key_de_google"
+   ```env
+   # Clave de API para los modelos de Google (Gemini)
+   GOOGLE_API_KEY="tu_api_key_de_google"
 
-    # Clave de API para la búsqueda web con Tavily
-    TAVILY_API_KEY="tu_api_key_de_tavily"
+   # Clave de API para la búsqueda web con Tavily
+   TAVILY_API_KEY="tu_api_key_de_tavily"
 
-    # Ruta al archivo de credenciales de Firebase (formato JSON)
-    # Descárgalo desde la consola de Firebase > Project Settings > Service accounts
-    FIREBASE_CRED_PATH="ruta/a/tu/firebase-credentials.json"
-    ```
+   # Ruta al archivo de credenciales de Firebase (formato JSON)
+   # Descárgalo desde la consola de Firebase > Project Settings > Service accounts
+   FIREBASE_CRED_PATH="ruta/a/tu/firebase-credentials.json"
+   ```
 
 4. **Ejecutar la aplicación:**
 
-    ```bash
-    uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-    ```
+   ```bash
+   uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+   ```
 
-    El servidor estará disponible en `http://localhost:8000`.
+   El servidor estará disponible en `http://localhost:8000`.
 
 ## :open_book: Endpoints de la API
 
@@ -218,4 +218,3 @@ Consulta el estado y el resultado de una guía generada previamente.
   ```bash
   curl -X DELETE http://localhost:8000/admin/reset-knowledge-base/
   ```
-
