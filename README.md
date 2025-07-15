@@ -63,7 +63,7 @@ Este es un proyecto monorepo con dos partes principales: `frontend` y `backend`.
    ```
 
 3. **Configura tus credenciales:**
-   Crea un archivo `.env` en la carpeta `backend` y a��ade tus claves de API. Consulta la [guía de configuración del backend](https://github.com/BosaBL/study-agent/blob/main/backend/README.md#-instalación-y-configuración) para más detalles.
+   Crea un archivo `.env` en la carpeta `backend` y añade tus claves de API. Consulta la [guía de configuración del backend](https://github.com/BosaBL/ai-study-planning-agent/blob/main/backend/README.md#gear-instalaci%C3%B3n-y-configuraci%C3%B3n) para más detalles.
 
 4. **Ejecuta el servidor:**
 
